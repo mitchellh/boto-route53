@@ -9,6 +9,7 @@ from boto.exception import BotoServerError
 from boto.resultset import ResultSet
 
 from hosted_zone import HostedZone
+from record import Record
 
 class AWSRestConnection(AWSAuthConnection):
     ResponseError = BotoServerError
@@ -106,3 +107,39 @@ class Route53Connection(AWSRestConnection):
         :return: The HostedZone object.
         """
         return self.get_object(['hostedzone', hosted_zone_id], HostedZone)
+
+    def get_all_rrsets(self, hosted_zone_id, type=None,
+                       name=None, maxitems=None):
+        """
+        Retrieve the Resource Record Sets defined for this Hosted Zone.
+        Returns an array of Record objects.
+
+        :type hosted_zone_id: str
+        :param hosted_zone_id: The unique identifier for the Hosted Zone
+
+        :type type: str
+        :param type: The type of resource record set to begin the record
+                     listing from.  Valid choices are:
+
+                     * A
+                     * AAAA
+                     * CNAME
+                     * MX
+                     * NS
+                     * PTR
+                     * SOA
+                     * SPF
+                     * SRV
+                     * TXT
+
+        :type name: str
+        :param name: The first name in the lexicographic ordering of domain
+                     names to be retrieved
+
+        :type maxitems: int
+        :param maxitems: The maximum number of records
+        """
+        params = {'type': type, 'name': name, 'maxitems': maxitems}
+        return self.get_list(['hostedzone', hosted_zone_id, 'rrset'],
+                             [('ResourceRecordSet', Record)],
+                             params)
