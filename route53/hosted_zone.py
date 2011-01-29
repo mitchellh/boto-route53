@@ -46,6 +46,13 @@ class HostedZone(object):
         else:
             setattr(self, name, value)
 
+    def update(self):
+        """
+        Update the state information of this zone by fetching
+        the current attributes from the service.
+        """
+        self.__dict__.update(self.connection.get_hosted_zone(self.id).__dict__)
+
     def records(self, type=None, name=None, maxitems=None):
         """
         Retrieve the resource record sets defined for this hosted
