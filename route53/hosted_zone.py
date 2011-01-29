@@ -1,6 +1,7 @@
 """
 Represents a single hosted zone.
 """
+from change_info import ChangeInfo
 
 class HostedZone(object):
     def __init__(self, connection=None, id=None, name=None, owner=None,
@@ -18,8 +19,7 @@ class HostedZone(object):
         return 'HostedZone:%s' % self.id
 
     def startElement(self, name, attrs, connection):
-        # TODO: ChangeInfo
-        if False and name == 'ChangeInfo':
+        if name == 'ChangeInfo':
             self.change_info = ChangeInfo(self.connection)
             return self.change_info
         elif name == 'NameServers':

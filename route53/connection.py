@@ -1,6 +1,7 @@
 """
 Represents a connection to the Route53 service.
 """
+import uuid
 import xml.sax
 import boto
 from boto import handler
@@ -8,6 +9,7 @@ from boto.connection import AWSAuthConnection
 from boto.exception import BotoServerError
 from boto.resultset import ResultSet
 
+from change_info import ChangeInfo
 from hosted_zone import HostedZone
 from record import Record
 
@@ -61,6 +63,16 @@ class AWSRestConnection(AWSAuthConnection):
 class Route53Connection(AWSRestConnection):
     DefaultHost = 'route53.amazonaws.com'
     Version = '2010-10-01'
+    XMLNameSpace = 'https://route53.amazonaws.com/doc/2010-10-01/'
+
+    CreateHostedZoneRequestXML = """<?xml version="1.0" encoding="UTF-8"?>
+        <CreateHostedZoneRequest xmlns="%(xmlns)s">
+            <Name>%(name)s</Name>
+            <CallerReference>%(caller_ref)s</CallerReference>
+            <HostedZoneConfig>
+                <Comment>%(comment)s</Comment>
+            </HostedZoneConfig>
+        </CreateHostedZoneRequest>"""
 
     def __init__(self, aws_access_key_id=None, aws_secret_access_key=None,
                  is_secure=True, host=None, port=None, proxy=None, proxy_port=None,
@@ -108,6 +120,58 @@ class Route53Connection(AWSRestConnection):
         """
         return self.get_object(['hostedzone', hosted_zone_id], HostedZone)
 
+    def create_hosted_zone(self, domain_name, caller_ref=None, comment=''):
+        """
+        Create a new Hosted Zone. Returns the new zone object created.
+
+        :type domain_name: str
+        :param domain_name: The name of the domain. This should be a
+                            fully-specified domain, and should end with
+                            a final period as the last label indication.
+                            If you omit the final period, Amazon Route 53
+                            assumes the domain is relative to the root.
+                            This is the name you have registered with your
+                            DNS registrar. It is also the name you will
+                            delegate from your registrar to the Amazon
+                            Route 53 delegation servers returned in
+                            response to this request.A list of strings
+                            with the image IDs wanted
+
+        :type caller_ref: str
+        :param caller_ref: A unique string that identifies the request
+                           and that allows failed CreateHostedZone requests
+                           to be retried without the risk of executing the
+                           operation twice.
+                           If you don't provide a value for this, boto will
+                           generate a Type 4 UUID and use that.
+
+        :type comment: str
+        :param comment: Any comments you want to include about the hosted
+                        zone.
+
+        :rtype: :class:`boto.route53.hostedzone.HostedZone`
+        :returns: The newly created HostedZone.
+        """
+        if caller_ref is None:
+            caller_ref = str(uuid.uuid4())
+        params = {'name' : domain_name,
+                  'caller_ref' : caller_ref,
+                  'comment' : comment,
+                  'xmlns' : self.XMLNameSpace
+                  }
+        xml = self.CreateHostedZoneRequestXML % params
+
+        return self.get_object('hostedzone', HostedZone, data=xml, verb='POST', expected_status=201)
+
+    def delete_hosted_zone(self, hosted_zone_id):
+        """
+        Delete a hosted zone with the given ID.
+
+        :rtype: :class:`boto.route53.change_info.ChangeInfo`
+        :return: The ChangeInfo result of the operation.
+        """
+        return self.get_object(['hostedzone', hosted_zone_id], ChangeInfo, verb='DELETE')
+
     def get_all_rrsets(self, hosted_zone_id, type=None,
                        name=None, maxitems=None):
         """
@@ -143,3 +207,18 @@ class Route53Connection(AWSRestConnection):
         return self.get_list(['hostedzone', hosted_zone_id, 'rrset'],
                              [('ResourceRecordSet', Record)],
                              params)
+
+    def get_change(self, change_id):
+        """
+        Get information about a proposed set of changes, as submitted
+        by the change_rrsets method.
+
+        :type change_id: str
+        :param change_id: The unique identifier for the set of changes.
+                          This ID is returned in the response to the
+                          change_rrsets method.
+
+        :rtype: :class:`boto.route53.change_info.ChangeInfo`
+        :return: The ChangeInfo object for the ID requested.
+        """
+        return self.get_object(['change', change_id], ChangeInfo)
