@@ -28,8 +28,5 @@ class ChangeInfo(object):
         :rtype: string
         :returns: The current status of the change.
         """
-        self._update(self.connection.get_change(self.id))
+        self.__dict__.update(self.connection.get_change(self.id).__dict__)
         return self.status
-
-    def _update(self, updated):
-        self.__dict__.update(updated.__dict__)
