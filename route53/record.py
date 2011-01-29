@@ -1,6 +1,56 @@
 """
-An individual record set.
+Individual record and record sets.
 """
+
+class RecordSet(object):
+    ChangeResourceRecordSetsBody = """<?xml version="1.0" encoding="UTF-8"?>
+    <ChangeResourceRecordSetsRequest xmlns="https://route53.amazonaws.com/doc/2010-10-01/">
+            <ChangeBatch>
+                <Comment>%(comment)s</Comment>
+                <Changes>%(changes)s</Changes>
+            </ChangeBatch>
+        </ChangeResourceRecordSetsRequest>"""
+
+    ChangeXML = """<Change>
+        <Action>%(action)s</Action>
+        %(record)s
+    </Change>"""
+
+
+    def __init__(self, connection=None, hosted_zone_id=None, comment=None):
+        self.connection = connection
+        self.hosted_zone_id = hosted_zone_id
+        self.comment = comment
+        self.changes = []
+
+    def __repr__(self):
+        return '<ResourceRecordSets: %s>' % self.hosted_zone_id
+
+    def add_change(self, action, name, type, ttl=600):
+        """
+        Add a change request. If you want to add values to the change
+        request, then modify the returned Record.
+        """
+        change = Record(name, type, ttl)
+        self.changes.append((action, change))
+        return change
+
+    def to_xml(self):
+        """Convert this ResourceRecordSet into XML
+        to be saved via the ChangeResourceRecordSetsRequest"""
+        changesXML = ""
+        for change in self.changes:
+            changeParams = {"action": change[0], "record": change[1].to_xml()}
+            changesXML += self.ChangeXML % changeParams
+        params = {"comment": self.comment, "changes": changesXML}
+        return self.ChangeResourceRecordSetsBody % params
+
+    def commit(self):
+        """Commit this change"""
+        if not self.connection:
+            from route53.connection import Route53Connection
+            self.connection = Route53Connection()
+        return self.connection.change_rrsets(self.hosted_zone_id, self.to_xml())
 
 class Record(object):
     XMLBody = """<ResourceRecordSet>

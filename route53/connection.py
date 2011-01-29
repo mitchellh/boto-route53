@@ -208,6 +208,24 @@ class Route53Connection(AWSRestConnection):
                              [('ResourceRecordSet', Record)],
                              params)
 
+    def change_rrsets(self, hosted_zone_id, xml_body):
+        """
+        Create or change the authoritative DNS information for this
+        Hosted Zone. Returns an instance of ChangeInfo for checking on the
+        status of this operation.
+
+        :type hosted_zone_id: str
+        :param hosted_zone_id: The unique identifier for the Hosted Zone
+
+        :type xml_body: str
+        :param xml_body: The list of changes to be made, defined in the
+                         XML schema defined by the Route53 service.
+
+        :rtype: :class:`boto.route53.change_info.ChangeInfo`
+        :return: The ChangeInfo object for checking on the status of this operation.
+        """
+        return self.get_object(['hostedzone', hosted_zone_id, 'rrset'], ChangeInfo, data=xml_body, verb='POST')
+
     def get_change(self, change_id):
         """
         Get information about a proposed set of changes, as submitted
