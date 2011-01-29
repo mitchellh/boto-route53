@@ -8,11 +8,11 @@ class Record(object):
         <Type>%(type)s</Type>
         <TTL>%(ttl)s</TTL>
         <ResourceRecords>
-            <ResourceRecord>
-                <Value>%(value)s</Value>
-            </ResourceRecord>
+            %(records)s
         </ResourceRecords>
     </ResourceRecordSet>"""
+
+    ResourceRecordBody = "<ResourceRecord><Value>%s</Value></ResourceRecord>"
 
     def __init__(self, connection=None, name=None, type=None, ttl=600):
         """
@@ -66,10 +66,13 @@ class Record(object):
         :rtype: string
         :returns: The XML representation for this record.
         """
+        records_xml = ""
+        for value in self.values:
+            records_xml += self.ResourceRecordBody % value
         params = {
             "name": self.name,
             "type": self.type,
             "ttl": self.ttl,
-            "value": self.value
+            "records": records_xml
         }
         return self.XMLBody % params
