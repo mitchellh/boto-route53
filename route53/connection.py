@@ -96,7 +96,7 @@ class Route53Connection(AWSRestConnection):
         else:
             true_endpoint.append(endpoint)
 
-        return super(self.__class__, self).make_request(true_endpoint, params, data, verb)
+        return super(Route53Connection, self).make_request(true_endpoint, params, data, verb)
 
     def get_all_hosted_zones(self):
         """
