@@ -31,7 +31,7 @@ class RecordSet(object):
         Add a change request. If you want to add values to the change
         request, then modify the returned Record.
         """
-        change = Record(name, type, ttl)
+        change = Record(self.connection, name, type, ttl)
         self.changes.append((action, change))
         return change
 
